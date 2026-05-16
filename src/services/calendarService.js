@@ -34,10 +34,13 @@ const generateCandidateSlots = (daysAhead = 7, slotDuration = SLOT_DURATION_MINU
     const dayOfWeek = day.getDay();
     if (!WORKING_HOURS.workingDays.includes(dayOfWeek)) continue;
 
-    const [startH, startM] = WORKING_HOURS.start.split(':').map(Number);
-    const [endH, endM] = WORKING_HOURS.end.split(':').map(Number);
-    const [lunchStartH, lunchStartM] = WORKING_HOURS.lunchStart.split(':').map(Number);
-    const [lunchEndH, lunchEndM] = WORKING_HOURS.lunchEnd.split(':').map(Number);
+    const isSaturday = dayOfWeek === 6;
+    const hoursConfig = isSaturday ? WORKING_HOURS.saturday : WORKING_HOURS.weekday;
+
+    const [startH, startM] = hoursConfig.start.split(':').map(Number);
+    const [endH, endM] = hoursConfig.end.split(':').map(Number);
+    const [lunchStartH, lunchStartM] = hoursConfig.lunchStart.split(':').map(Number);
+    const [lunchEndH, lunchEndM] = hoursConfig.lunchEnd.split(':').map(Number);
 
     let cursor = new Date(day);
     cursor.setHours(startH, startM, 0, 0);

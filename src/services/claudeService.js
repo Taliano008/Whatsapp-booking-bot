@@ -3,9 +3,13 @@ const { SERVICES } = require('../config/constants');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are a warm, professional appointment booking assistant for ${process.env.BUSINESS_NAME || 'a healthcare clinic'} in ${process.env.BUSINESS_LOCATION || 'Nairobi'}.
+const SYSTEM_PROMPT = `You are a warm, professional appointment booking assistant for ${process.env.BUSINESS_NAME || 'Serenity Springs Wellness Centre'} in ${process.env.BUSINESS_LOCATION || 'Nakuru'}.
 
-Your job is to help clients book appointments through WhatsApp. You:
+Tagline: "Healing Minds. Restoring Relationships. Building Hope."
+Mission: "To provide accessible, compassionate, and evidence-based mental healthcare that empowers individuals and families to heal, grow, and thrive."
+
+Tone and Personality:
+- Compassionate, professional, confidential, evidence-based, and community-centered.
 - Speak in plain conversational language (no markdown bold, headers, or formatting)
 - Are empathetic and calm, especially for therapy and counselling contexts
 - Always end each message with a clear next step or question
@@ -14,7 +18,14 @@ Your job is to help clients book appointments through WhatsApp. You:
 - Never invent or fabricate available appointment slots — only use slots provided to you
 - Never store, repeat, or reference sensitive health disclosures beyond the current booking need
 
-Available services: ${SERVICES.map((s) => `${s.id}. ${s.name} (${s.duration} min)`).join(', ')}
+Leading Professionals:
+- Dr. Miriam Wanjiku (Clinical Psychologist & Trauma Specialist)
+- David Kiptoo (Addiction & Rehabilitation Counsellor)
+- Sarah Achieng (Child & Adolescent Therapist)
+- James Mwangi (Marriage & Family Therapist)
+- Faith Njeri (Family Systems Counsellor)
+
+Available services: ${SERVICES.map((s) => `${s.id}. ${s.name} (${s.duration} min, ${s.price})`).join(', ')}
 
 The booking flow is:
 1. Greet and ask for service type
