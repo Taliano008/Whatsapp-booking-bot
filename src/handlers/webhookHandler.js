@@ -1,3 +1,53 @@
+/**
+ * webhookHandler.js
+ * =================
+ * Full Webhook Connection Flow
+ * ----------------------------
+ *
+ *  Meta Platform                        This Server (/webhook)
+ *  ─────────────────────────────────────────────────────────────
+ *
+ *  [1] VERIFICATION (one-time setup)
+ *
+ *      Meta ──GET /webhook?hub.mode=subscribe
+ *                        &hub.verify_token=<secret>
+ *                        &hub.challenge=<nonce>──► handleVerification()
+ *                                                      │
+ *                                         token match? │
+ *                                              ├─ YES ─► 200 + echo challenge ◄── Meta confirms webhook ✓
+ *                                              └─ NO  ─► 403 Forbidden
+ *
+ *  [2] LIVE MESSAGES (every conversation turn)
+ *
+ *      User sends WhatsApp msg
+ *            │
+ *            ▼
+ *      Meta ──POST /webhook──► handleIncomingMessage(phone, text)
+ *                                      │
+ *                         ┌───────────▼──────────────┐
+ *                         │  Human-handoff check      │
+ *                         │  "speak to someone" / #bot│
+ *                         └───────────┬──────────────┘
+ *                                     │
+ *                         ┌───────────▼──────────────┐
+ *                         │  Command check            │
+ *                         │  CANCEL / RESCHEDULE      │
+ *                         └───────────┬──────────────┘
+ *                                     │
+ *                         ┌───────────▼──────────────┐
+ *                         │  AI Flow                  │
+ *                         │  getOrCreateClient()      │
+ *                         │  detectLanguage()         │
+ *                         │  getHistory()             │
+ *                         │  getAvailableSlots()      │
+ *                         │  getAIResponse() [Claude] │
+ *                         │  addToHistory()           │
+ *                         │  sendMessage() [WA API]   │
+ *                         └──────────────────────────┘
+ */
+
+'use strict';
+
 const { getOrCreateClient, addToHistory, getHistory } = require('./sessionHandler');
 const { cancelBooking } = require('./bookingHandler');
 const { getAIResponse } = require('../services/claudeService');
@@ -5,6 +55,34 @@ const { getAvailableSlots } = require('../services/calendarService');
 const { detectLanguage } = require('../services/languageService');
 const { sendMessage } = require('../services/whatsappService');
 const Client = require('../models/Client');
+
+// ─── Webhook Verification ────────────────────────────────────────────────────
+
+/**
+ * handleVerification
+ * Responds to Meta's one-time GET challenge when registering the webhook.
+ * The WEBHOOK_VERIFY_TOKEN in .env must match what is set in the Meta dashboard.
+ *
+ * @param {import('express').Request}  req
+ * @param {import('express').Response} res
+ */
+const handleVerification = (req, res) => {
+  const mode      = req.query['hub.mode'];
+  const token     = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  console.log('[Webhook] Verification attempt — mode:', mode);
+
+  if (mode === 'subscribe' && token === process.env.WEBHOOK_VERIFY_TOKEN) {
+    console.log('[Webhook] ✅ Verified successfully');
+    return res.status(200).send(challenge);
+  }
+
+  console.warn('[Webhook] ❌ Verification failed — token mismatch or bad mode');
+  return res.sendStatus(403);
+};
+
+// ─── Human Handoff State ─────────────────────────────────────────────────────
 
 // Track human handoff state in memory (extend to Redis for scale)
 const handoffActive = new Set();
@@ -84,4 +162,4 @@ const handleIncomingMessage = async (phone, messageText) => {
   await sendMessage(phone, reply);
 };
 
-module.exports = { handleIncomingMessage };
+module.exports = { handleVerification, handleIncomingMessage };
